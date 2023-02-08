@@ -1,26 +1,51 @@
 <!DOCTYPE html>
 <html>
   <head>
-<style>
-  .ribbon {
-  background-color: #a00;
-  overflow: hidden;
-  white-space: nowrap;
-  position: absolute;
-  right: -50px;
-  top: 40px;
-  -webkit-transform: rotate(45deg);
-     -moz-transform: rotate(45deg);
-      -ms-transform: rotate(45deg);
-       -o-transform: rotate(45deg);
-          transform: rotate(45deg);
-	-webkit-box-shadow: 0 0 10px #888;
-     -moz-box-shadow: 0 0 10px #888;
-          box-shadow: 0 0 10px #888;
-}
+    <style>
+      body {
+        background-color: #f2f2f2;
+        font-family: Arial, sans-serif;
+      }
+      
+      .container {
+        width: 500px;
+        margin: 50px auto;
+        text-align: center;
+      }
+      
+      #status {
+        font-size: 24px;
+        font-weight: bold;
+        color: #a00;
+        margin-bottom: 20px;
+      }
+      
+      #transcript {
+        font-size: 18px;
+        color: #444;
+        margin-bottom: 50px;
+      }
+      
+      .ribbon {
+        background-color: #a00;
+        overflow: hidden;
+        white-space: nowrap;
+        position: absolute;
+        right: -50px;
+        top: 40px;
+        -webkit-transform: rotate(45deg);
+        -moz-transform: rotate(45deg);
+        -ms-transform: rotate(45deg);
+        -o-transform: rotate(45deg);
+        transform: rotate(45deg);
+        -webkit-box-shadow: 0 0 10px #888;
+        -moz-box-shadow: 0 0 10px #888;
+        box-shadow: 0 0 10px #888;
+      }
+      
 .ribbon a {
   border: 1px solid #faa;
-  color: #fff;
+  color: white;
   display: block;
   font: bold 81.25% 'Helvetica Neue', Helvetica, Arial, sans-serif;
   margin: 1px 0;
@@ -29,11 +54,47 @@
   text-decoration: none;
   text-shadow: 0 0 5px #444;
 }
-</style>
+      .button {
+  background-color: green;
+  color: white;
+  border: 2px solid lightseagreen;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 18px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease-in-out;
+}
+
+  .button:hover {
+  background-color: white;
+  color: darkolivegreen;
+  border: 2px solid lightseagreen;
+  box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+   .button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+    </style>
   </head>
   <body>
-    <p id="status">Please allow access to your mic to detect sound</p>
-    <p id="transcript">once you have connected your mic you can ask questions!</p>
+    <div class="container">
+      <h1>OpenAi Trained Model Test</h1><br>
+      <p id="status">Please allow access to your mic to detect sound</p>
+      <p id="transcript">Once you have connected your mic, you can ask questions!</p>
+      <center><button id="play-button" class="button">Show Audio Graph</button></center>
+      <canvas id="oscilloscope"></canvas>
+      <br><br>
+      <box>
+        <p style="font-family:courier">Audio Sent :</p><br>
+        <div style="width= 30%; height: auto;background-image: url('https://img.freepik.com/free-vector/abstract-soft-pink-watercolor-background_1035-18994.jpg') "><br><p id="process">None</p><br></div>
+      </box>
+    </div>
+    <div class="ribbon">
+  <a href="https://github.com/WrappedCelio/openaibot">Fork me on GitHub</a>
+</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.2.1/axios.min.js"></script>
     <script>
       navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -57,9 +118,12 @@
           const transcript = received.channel.alternatives[0].transcript
           if (transcript && received.is_final) {
       
-            axios.post("https://test.crazyy76.repl.co/uwu", {text: transcript}).then(res=>{
+            axios.post("https://openai.celio.space/uwu", {text: transcript}).then(res=>{
               var snd = new Audio("data:audio/wav;base64," + res.data);
 snd.play();
+              var hm = document.getElementById("process")
+              hm.innerHTML = transcript
+              
               })
           }
         }
@@ -73,8 +137,63 @@ snd.play();
         }
       })
     </script>
-    <div class="ribbon">
-  <a href="https://github.com/WrappedCelio/OpenAiTest">Fork me on GitHub</a>
-</div>
+    <script>
+
+      const playButton = document.getElementById("play-button");
+
+    playButton.addEventListener('click', function() {
+      playButton.style.display = "none";
+              const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+        const analyser = audioContext.createAnalyser()
+      analyser.fftSize = 2048
+      const bufferLength = analyser.frequencyBinCount
+      const dataArray = new Uint8Array(bufferLength)
+      
+      // Get the canvas element and set up the drawing context
+      const canvas = document.querySelector('#oscilloscope')
+      const canvasContext = canvas.getContext('2d')
+      canvasContext.clearRect(0, 0, canvas.width, canvas.height)
+      
+      // Connect the microphone input to the analyser node
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        const source = audioContext.createMediaStreamSource(stream)
+        source.connect(analyser)
+        
+        // Start drawing the oscilloscope
+        function draw() {
+          requestAnimationFrame(draw)
+          analyser.getByteTimeDomainData(dataArray)
+          
+          canvasContext.fillStyle = 'rgb(200, 200, 200)'
+          canvasContext.fillRect(0, 0, canvas.width, canvas.height)
+          
+          canvasContext.lineWidth = 2
+          canvasContext.strokeStyle = 'rgb(0, 0, 0)'
+          
+          canvasContext.beginPath()
+          const sliceWidth = canvas.width * 1.0 / bufferLength
+          let x = 0
+          for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0
+            const y = v * canvas.height / 2
+            
+            if (i === 0) {
+              canvasContext.moveTo(x, y)
+            } else {
+              canvasContext.lineTo(x, y)
+            }
+            
+            x += sliceWidth
+          }
+          canvasContext.lineTo(canvas.width, canvas.height / 2)
+          canvasContext.stroke()
+        }
+        
+        draw()
+      })
+});
+
+
+    </script>
   </body>
 </html>
