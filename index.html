@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+<style>
+  .ribbon {
+  background-color: #a00;
+  overflow: hidden;
+  white-space: nowrap;
+  position: absolute;
+  right: -50px;
+  top: 40px;
+  -webkit-transform: rotate(45deg);
+     -moz-transform: rotate(45deg);
+      -ms-transform: rotate(45deg);
+       -o-transform: rotate(45deg);
+          transform: rotate(45deg);
+	-webkit-box-shadow: 0 0 10px #888;
+     -moz-box-shadow: 0 0 10px #888;
+          box-shadow: 0 0 10px #888;
+}
+.ribbon a {
+  border: 1px solid #faa;
+  color: #fff;
+  display: block;
+  font: bold 81.25% 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  margin: 1px 0;
+  padding: 10px 50px;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 0 5px #444;
+}
+</style>
+  </head>
+  <body>
+    <p id="status">Please allow access to your mic to detect sound</p>
+    <p id="transcript">once you have connected your mic you can ask questions!</p>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.2.1/axios.min.js"></script>
+    <script>
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        const mediaRecorder = new MediaRecorder(stream)
+        const socket = new WebSocket('wss://api.deepgram.com/v1/listen', [ 'token', 'b321197c6287cb68ea1c8aa1127771b5e718e21e' ])
+
+        socket.onopen = () => {
+          console.log({ event: 'onopen' })
+          document.querySelector('#status').textContent = 'Connected'
+          mediaRecorder.addEventListener('dataavailable', event => {
+            if (event.data.size > 0 && socket.readyState == 1) {
+              socket.send(event.data)
+            }
+          })
+          mediaRecorder.start(250)
+        }
+
+        socket.onmessage = (message) => {
+          console.log({ event: 'onmessage', message })
+          const received = JSON.parse(message.data)
+          const transcript = received.channel.alternatives[0].transcript
+          if (transcript && received.is_final) {
+      
+            axios.post("https://test.crazyy76.repl.co/uwu", {text: transcript}).then(res=>{
+              var snd = new Audio("data:audio/wav;base64," + res.data);
+snd.play();
+              })
+          }
+        }
+
+        socket.onclose = () => {
+          console.log({ event: 'onclose' })
+        }
+
+        socket.onerror = (error) => {
+          console.log({ event: 'onerror', error })
+        }
+      })
+    </script>
+    <div class="ribbon">
+  <a href="https://github.com/WrappedCelio/OpenAiTest">Fork me on GitHub</a>
+</div>
+  </body>
+</html>
