@@ -19,7 +19,7 @@ function sleep(ms) {
 }
 
 async function transcript(link){
-const deepgram = new Deepgram("b321197c6287cb68ea1c8aa1127771b5e718e21e");
+const deepgram = new Deepgram("yourApiKey");
 
 const fileSource = { buffer: link, mimetype: "audio/webm" };
 
