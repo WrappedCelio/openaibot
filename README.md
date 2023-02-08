@@ -1,6 +1,6 @@
 # An OpenAi Powered Bot With User Text Synced
 
-## Install modules (nodejs)
+## Install modules 
 ```bash
 npm i express openai @deepgram/@sdk
 ```
